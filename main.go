@@ -576,7 +576,7 @@ func votePullRequest(client *http.Client, pullRequestID int, vote int) {
 
 func main() {
 	// read secrets
-	file, _ := os.Open("tests.json")
+	file, _ := os.Open("secrets.json")
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	err := decoder.Decode(&secret)
@@ -587,6 +587,10 @@ func main() {
 
 	// read PR content
 	encodedPRContentString := os.Getenv("PRCONTENT")
+	if len(encodedPRContentString) == 0 {
+		fmt.Println("env PRCONTENT not found.")
+		return
+	}
 
 	prContentBytes, err := base64.StdEncoding.DecodeString(encodedPRContentString)
 	if err != nil {
