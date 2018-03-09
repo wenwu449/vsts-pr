@@ -248,7 +248,7 @@ var botCommentPrefix = "**[BOT_Image]**"
 var botCommentSuffix = "*This comment was added by a bot, please kindly let me know if the comment needs improvement.*"
 
 func getBranchNameFromRefName(refName string) string {
-	return (strings.Split(refName, "/"))[2]
+	return (strings.SplitAfterN(refName, "/", 3))[2]
 }
 
 func getDiffsBetweenBranches(client *http.Client, baseBranch string, targetBranch string) diffs {
