@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -339,6 +340,14 @@ func getHeaderFromHealthCheck(done chan<- http.Header, endpoint string) {
 	done <- resp.Header
 }
 
+func getCommentContent(missingImages []string) string {
+	if len(missingImages) == 0 {
+		return fmt.Sprintf("%s %s\n%s", botCommentPrefix, "All images currently used in production are included.", botCommentSuffix)
+	}
+	sort.Strings(missingImages)
+	return fmt.Sprintf("%s %s%+v\n%s", botCommentPrefix, "Missing images:", missingImages, botCommentSuffix)
+}
+
 func getCommentThreads(client *http.Client, pullRequestID int) commentThreads {
 	getThreadsURLTemplate := "https://{instance}/DefaultCollection/{project}/_apis/git/repositories/{repository}/pullRequests/{pullRequest}/threads?api-version={version}"
 	r := strings.NewReplacer(
@@ -385,11 +394,16 @@ func createCommentThread(client *http.Client, pullRequestID int, filePath string
 		"{pullRequest}", strconv.Itoa(pullRequestID),
 		"{version}", "3.0-preview")
 
+	status := 1
+	if len(missingImages) == 0 {
+		status = 2
+	}
+
 	thread := postThread{
 		Comments: []postComment{
 			{
 				ParentCommentID: 0,
-				Content:         fmt.Sprintf("%s %s%+v\n%s", botCommentPrefix, "Missing images:", missingImages, botCommentSuffix),
+				Content:         getCommentContent(missingImages),
 				CommentType:     1,
 			},
 		},
@@ -399,7 +413,7 @@ func createCommentThread(client *http.Client, pullRequestID int, filePath string
 				Value: 1,
 			},
 		},
-		Status: 1,
+		Status: status,
 		ThreadContext: threadContext{
 			FilePath: filePath,
 			LeftFileStart: filePosition{
@@ -461,7 +475,7 @@ func addComment(client *http.Client, pullRequestID int, thread commentThread, mi
 		}
 	}
 
-	content := fmt.Sprintf("%s %s%+v\n%s", botCommentPrefix, "Missing images:", missingImages, botCommentSuffix)
+	content := getCommentContent(missingImages)
 
 	if strings.EqualFold(commentContent, content) {
 		return
@@ -496,12 +510,17 @@ func addComment(client *http.Client, pullRequestID int, thread commentThread, mi
 	fmt.Println(resp.Status)
 }
 
-func setCommentThreadActive(client *http.Client, pullRequestID int, thread commentThread) {
-	if strings.EqualFold(thread.Status, "active") {
+func setCommentThreadStatus(client *http.Client, pullRequestID int, thread commentThread, status int) {
+	statusString := "active"
+	if status == 2 {
+		statusString = "fixed"
+	}
+	if strings.EqualFold(thread.Status, statusString) {
+		fmt.Printf("thread status is already %v\n", status)
 		return
 	}
 
-	fmt.Printf("Set PR %v thread %v to active...\n", pullRequestID, thread.ID)
+	fmt.Printf("Set PR %v thread %v to %v...\n", pullRequestID, thread.ID, status)
 
 	patchThreadURLTempate := "https://{instance}/DefaultCollection/{project}/_apis/git/repositories/{repository}/pullRequests/{pullRequest}/threads/{threadID}?api-version={version}"
 	r := strings.NewReplacer(
@@ -513,7 +532,7 @@ func setCommentThreadActive(client *http.Client, pullRequestID int, thread comme
 		"{version}", "3.0-preview")
 
 	patchThread := patchThread{
-		Status: 1,
+		Status: status,
 	}
 
 	urlString := r.Replace(patchThreadURLTempate)
@@ -655,7 +674,7 @@ func main() {
 		}
 	}
 
-	missingImages := make(map[string][]string)
+	missingImagesMap := make(map[string][]string)
 	for _, imageConfig := range changedImageConfigs {
 		images := []string{}
 		imageList := imageList{}
@@ -682,33 +701,26 @@ func main() {
 			}
 		}
 		if len(images) > 0 {
-			missingImages[imageConfig.ConfigPath] = images
+			missingImagesMap[imageConfig.ConfigPath] = images
 		}
 	}
 
-	if len(missingImages) == 0 {
-		foundVote := false
-		for _, reviewer := range prContent.Resource.Reviewers {
-			if strings.EqualFold(reviewer.ID, secret.UserID) {
-				foundVote = true
-				if reviewer.Vote < 0 {
-					votePullRequest(client, prContent.Resource.PullRequestID, 0)
-				}
-				break
-			}
-		}
-		if !foundVote {
-			votePullRequest(client, prContent.Resource.PullRequestID, 0)
-		}
+	if len(missingImagesMap) == 0 {
+		fmt.Printf("image check pass.\n")
+	} else {
+		fmt.Printf("image missing: %+v\n", missingImagesMap)
 	}
-
-	fmt.Printf("image missing: %+v\n", missingImages)
 
 	commentThreads := getCommentThreads(client, prContent.Resource.PullRequestID)
-	for filePath, missingImages := range missingImages {
+	for _, imageConfig := range changedImageConfigs {
+		missingImages, ok := missingImagesMap[imageConfig.ConfigPath]
+		if !ok {
+			missingImages = []string{}
+		}
+
 		commentThread := commentThread{}
 		for _, thread := range commentThreads.Value {
-			if !thread.IsDeleted && strings.EqualFold(thread.ThreadContext.FilePath, filePath) {
+			if !thread.IsDeleted && strings.EqualFold(thread.ThreadContext.FilePath, imageConfig.ConfigPath) {
 				for _, comment := range thread.Comments {
 					if comment.ID == 1 && comment.Author.ID == secret.UserID && strings.HasPrefix(comment.Content, botCommentPrefix) {
 						commentThread = thread
@@ -719,14 +731,33 @@ func main() {
 		}
 		if commentThread.Status == "" {
 			// create thread
-			createCommentThread(client, prContent.Resource.PullRequestID, filePath, missingImages)
+			createCommentThread(client, prContent.Resource.PullRequestID, imageConfig.ConfigPath, missingImages)
 		} else {
 			// add comment
 			addComment(client, prContent.Resource.PullRequestID, commentThread, missingImages)
-			// set active
-			setCommentThreadActive(client, prContent.Resource.PullRequestID, commentThread)
+			if len(missingImages) == 0 {
+				// set fixted
+				setCommentThreadStatus(client, prContent.Resource.PullRequestID, commentThread, 2)
+			} else {
+				// set active
+				setCommentThreadStatus(client, prContent.Resource.PullRequestID, commentThread, 1)
+			}
 		}
 	}
-	// wait
-	votePullRequest(client, prContent.Resource.PullRequestID, -5)
+	// vote
+	if len(missingImagesMap) == 0 {
+		for _, reviewer := range prContent.Resource.Reviewers {
+			if strings.EqualFold(reviewer.ID, secret.UserID) {
+				if reviewer.Vote < 0 {
+					// reset
+					votePullRequest(client, prContent.Resource.PullRequestID, 0)
+				}
+				break
+			}
+		}
+	} else {
+		// wait
+		votePullRequest(client, prContent.Resource.PullRequestID, -5)
+	}
+
 }
