@@ -244,8 +244,8 @@ type diffs struct {
 }
 
 var secret = secrets{}
-var botCommentPrefix = "**[BOT_Image]**"
-var botCommentSuffix = "*This comment was added by a bot, please kindly let me know if the comment needs improvement.*"
+var botCommentPrefix = "[BOT_Image]\n"
+var botCommentSuffix = "\n*This comment was added by bot, please let me know if you have any suggestion!*"
 
 func getBranchNameFromRefName(refName string) string {
 	return (strings.SplitAfterN(refName, "/", 3))[2]
@@ -340,12 +340,40 @@ func getHeaderFromHealthCheck(done chan<- http.Header, endpoint string) {
 	done <- resp.Header
 }
 
-func getCommentContent(missingImages []string) string {
+func getFailedSign() string {
+	signs := []string{":exclamation:", ":warning:", ":scream:", ":broken_heart:", ":no_entry:", ":bangbang:"}
+	return signs[time.Now().Minute()%len(signs)]
+}
+
+func getPassedSign() string {
+	signs := []string{":heavy_check_mark:", ":thumbsup:", ":white_check_mark:", ":ballot_box_with_check:", ":clap:", ":smiley:"}
+	return signs[time.Now().Minute()%len(signs)]
+}
+
+func getPassedWord() string {
+	words := []string{"Verified!", "Awesome!", "Clear!", "Great Job!"}
+	return words[time.Now().Minute()%len(words)]
+}
+
+func getCommentContent(missingImages []string) (string, string) {
+	essentialMessage := "All images in use are included in this list."
 	if len(missingImages) == 0 {
-		return fmt.Sprintf("%s %s\n%s", botCommentPrefix, "All images currently used in production are included.", botCommentSuffix)
+		return essentialMessage, fmt.Sprintf(
+			"%s%s %s %s\n%s",
+			botCommentPrefix,
+			getPassedSign(),
+			getPassedWord(),
+			essentialMessage,
+			botCommentSuffix)
 	}
 	sort.Strings(missingImages)
-	return fmt.Sprintf("%s %s%+v\n%s", botCommentPrefix, "Missing images:", missingImages, botCommentSuffix)
+	essentialMessage = fmt.Sprintf("Following images should be included:**%+v**", missingImages)
+	return essentialMessage, fmt.Sprintf(
+		"%s%s %s\nYou can get image list from [acchealth](http://armhealth.azurewebsites.net/#acc).\n%s",
+		botCommentPrefix,
+		getFailedSign(),
+		essentialMessage,
+		botCommentSuffix)
 }
 
 func getCommentThreads(client *http.Client, pullRequestID int) commentThreads {
@@ -399,11 +427,12 @@ func createCommentThread(client *http.Client, pullRequestID int, filePath string
 		status = 2
 	}
 
+	_, content := getCommentContent(missingImages)
 	thread := postThread{
 		Comments: []postComment{
 			{
 				ParentCommentID: 0,
-				Content:         getCommentContent(missingImages),
+				Content:         content,
 				CommentType:     1,
 			},
 		},
@@ -475,9 +504,9 @@ func addComment(client *http.Client, pullRequestID int, thread commentThread, mi
 		}
 	}
 
-	content := getCommentContent(missingImages)
+	essentialMessage, content := getCommentContent(missingImages)
 
-	if strings.EqualFold(commentContent, content) {
+	if strings.Contains(commentContent, essentialMessage) {
 		return
 	}
 
