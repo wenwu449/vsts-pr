@@ -356,7 +356,7 @@ func getPassedWord() string {
 }
 
 func getCommentContent(missingImages []string) (string, string) {
-	essentialMessage := "All images in use are included in this list."
+	essentialMessage := "All images listed on [acchealth](http://armhealth.azurewebsites.net/#acc) are included in this list."
 	if len(missingImages) == 0 {
 		return essentialMessage, fmt.Sprintf(
 			"%s%s %s %s\n%s",
