@@ -12,6 +12,5 @@ FROM alpine
 RUN apk add --no-cache ca-certificates
 WORKDIR /vsts-pr
 COPY --from=build-env /go/src/github.com/wenwu449/vsts-pr/vsts-pr .
-COPY ./secrets.json .
 
 CMD ["./vsts-pr"]
