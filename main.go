@@ -624,17 +624,23 @@ func votePullRequest(client *http.Client, pullRequestID int, vote int) {
 
 func main() {
 	// read secrets
-	file, _ := os.Open("secrets.json")
+	secretPathString := os.Getenv("SECRET_PATH")
+	if len(secretPathString) == 0 {
+		fmt.Println("env SECRET_PATH not found.")
+		return
+	}
+
+	file, _ := os.Open(secretPathString)
 	defer file.Close()
 	decoder := json.NewDecoder(file)
 	err := decoder.Decode(&secret)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(secret.Username)
+	fmt.Printf("Secret from env var: %s\n", secret.Username)
 
 	// read PR content
-	encodedPRContentString := os.Getenv("PRCONTENT")
+	encodedPRContentString := os.Getenv("PR_CONTENT")
 	if len(encodedPRContentString) == 0 {
 		fmt.Println("env PRCONTENT not found.")
 		return
