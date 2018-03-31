@@ -22,6 +22,7 @@ func main() {
 	}
 
 	log.Printf("Got PR update: %v\n", pr.Resource.PullRequestID)
+	// image check
 
 	if !strings.EqualFold(pr.Resource.TargetRefName, fmt.Sprintf("%s/%s", "refs/heads", config.MasterBranch)) {
 		fmt.Printf("unexpected target branch: %s\n", pr.Resource.TargetRefName)

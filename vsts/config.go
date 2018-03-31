@@ -16,6 +16,8 @@ type imageConfig struct {
 	Header     string `json:"header"`
 }
 
+type changeGroup []string
+
 // Config is configuration for VSTS access
 type Config struct {
 	Username     string        `json:"username"`
@@ -27,6 +29,7 @@ type Config struct {
 	MasterBranch string        `json:"masterBranch"`
 	UserID       string        `json:"userId"`
 	ImageConfigs []imageConfig `json:"imageConfigs"`
+	ChangeGroups []changeGroup `json:"changeGroups"`
 	Endpoints    []string      `json:"endpoints"`
 }
 

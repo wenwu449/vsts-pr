@@ -169,7 +169,7 @@ func (r *imageReview) review() (bool, error) {
 
 		if commentThread.Status == "" {
 			// create thread
-			createCommentThread(r.pullRequest.Resource.PullRequestID, imageConfig.ConfigPath, status, commentContent)
+			err := createCommentThread(r.pullRequest.Resource.PullRequestID, imageConfig.ConfigPath, status, commentContent)
 			if err != nil {
 				return false, err
 			}
