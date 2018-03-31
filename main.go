@@ -21,6 +21,8 @@ type imageConfig struct {
 	Header     string `json:"header"`
 }
 
+type changeGroup []string
+
 type secrets struct {
 	Username     string        `json:"username"`
 	Password     string        `json:"password"`
@@ -31,6 +33,7 @@ type secrets struct {
 	MasterBranch string        `json:"masterBranch"`
 	UserID       string        `json:"userId"`
 	ImageConfigs []imageConfig `json:"imageConfigs"`
+	ChangeGroups []changeGroup `json:"changeGroups"`
 	Endpoints    []string      `json:"endpoints"`
 }
 
@@ -672,6 +675,7 @@ func main() {
 
 	diffs := getDiffsBetweenBranches(client, getBranchNameFromRefName(prContent.Resource.TargetRefName), getBranchNameFromRefName(prContent.Resource.SourceRefName))
 
+	// image check
 	var changedImageConfigs []imageConfig
 	for _, imageConfig := range secret.ImageConfigs {
 		for _, change := range diffs.Changes {
@@ -779,6 +783,57 @@ func main() {
 			}
 		}
 	}
+
+	// change pair check
+	changedItemMap := make(map[string]bool)
+	for _, change := range diffs.Changes {
+		changedItemMap[change.Item.Path] = true
+	}
+
+	missingGroupMap = make(map[string]changeGroup)
+	for _, group := range secret.ChangeGroups {
+		list := make([]string)
+		for _, item := range group {
+			if _, ok := changedItemMap[item]; ok {
+				list = append(list, item)
+			}
+		}
+
+		if len(list) > 0 || len(list) < len(group) {
+			for _, item := range list {
+				missingGroupMap[item] = group
+			}
+		}
+	}
+
+	for filePath, missingGroup := missingGroupMap {
+		commentThread := commentThread{}
+		for _, thread := range commentThreads.Value {
+			if !thread.IsDeleted && strings.EqualFold(thread.ThreadContext.FilePath, filePath) {
+				for _, comment := range thread.Comments {
+					if comment.ID == 1 && comment.Author.ID == secret.UserID && strings.HasPrefix(comment.Content, botCommentPrefix) {
+						commentThread = thread
+						break
+					}
+				}
+			}
+		}
+		if commentThread.Status == "" {
+			// create thread
+			createCommentThread(client, prContent.Resource.PullRequestID, imageConfig.ConfigPath, missingImages)
+		} else {
+			// add comment
+			addComment(client, prContent.Resource.PullRequestID, commentThread, missingImages)
+			if len(missingImages) == 0 {
+				// set fixted
+				setCommentThreadStatus(client, prContent.Resource.PullRequestID, commentThread, 2)
+			} else {
+				// set active
+				setCommentThreadStatus(client, prContent.Resource.PullRequestID, commentThread, 1)
+			}
+		}
+	}
+
 	// vote
 	if len(missingImagesMap) == 0 {
 		for _, reviewer := range prContent.Resource.Reviewers {
