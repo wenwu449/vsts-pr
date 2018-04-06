@@ -45,19 +45,6 @@ func getCommentURL(pullRequestID int, threadID int) string {
 	return r.Replace(commentURLTempate)
 }
 
-func getReviewerURL(pullRequestID int) string {
-	reviewerURLTemplate := "https://{instance}/DefaultCollection/{project}/_apis/git/repositories/{repository}/pullRequests/{pullRequest}/reviewers/{reviewer}?api-version={version}"
-	r := strings.NewReplacer(
-		"{instance}", config.Instance,
-		"{project}", config.Project,
-		"{repository}", config.Repo,
-		"{pullRequest}", strconv.Itoa(pullRequestID),
-		"{reviewer}", config.UserID,
-		"{version}", "3.0-preview")
-
-	return r.Replace(reviewerURLTemplate)
-}
-
 func getCommentThreads(pullRequestID int) (*commentThreads, error) {
 	commentThreads := new(commentThreads)
 
@@ -71,7 +58,7 @@ func getCommentThreads(pullRequestID int) (*commentThreads, error) {
 	return commentThreads, nil
 }
 
-func createCommentThread(pullRequestID int, filePath string, content string) error {
+func createCommentThread(pullRequestID int, filePath string, status int, content string) error {
 	log.Printf("Creating comment thread to PR %v...\n", pullRequestID)
 
 	thread := postThread{
@@ -88,7 +75,7 @@ func createCommentThread(pullRequestID int, filePath string, content string) err
 				Value: 1,
 			},
 		},
-		Status: 1,
+		Status: status,
 		ThreadContext: threadContext{
 			FilePath: filePath,
 			RightFileStart: filePosition{
@@ -112,7 +99,7 @@ func createCommentThread(pullRequestID int, filePath string, content string) err
 	return nil
 }
 
-func addComment(pullRequestID int, thread commentThread, content string) error {
+func addComment(pullRequestID int, thread commentThread, essentialMessage string, content string) error {
 	lastCommentID := 0
 	commentContent := ""
 	for _, comment := range thread.Comments {
@@ -122,7 +109,7 @@ func addComment(pullRequestID int, thread commentThread, content string) error {
 		}
 	}
 
-	if strings.Contains(commentContent, content) {
+	if strings.Contains(commentContent, essentialMessage) {
 		log.Printf("Already commented to PR %v thread %v...\n", pullRequestID, thread.ID)
 		return nil
 	}
@@ -164,23 +151,6 @@ func setCommentThreadStatus(pullRequestID int, thread commentThread, status int)
 	url := getThreadURL(pullRequestID, thread.ID)
 
 	err := patchToVsts(url, patchThread)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func votePullRequest(pullRequestID int, vote int) error {
-	log.Printf("Vote on PR %v: %v...\n", pullRequestID, vote)
-
-	putVote := putVote{
-		Vote: vote,
-	}
-
-	url := getReviewerURL(pullRequestID)
-
-	err := putToVsts(url, putVote)
 	if err != nil {
 		return err
 	}
