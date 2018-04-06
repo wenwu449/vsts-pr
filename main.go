@@ -13,238 +13,101 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/wenwu449/vsts-pr/vsts"
 )
 
-type imageConfig struct {
-	Os         string `json:"os"`
-	ConfigPath string `json:"configPath"`
-	Header     string `json:"header"`
-}
 
-type changeGroup []string
 
-type secrets struct {
-	Username     string        `json:"username"`
-	Password     string        `json:"password"`
-	Instance     string        `json:"instance"`
-	Collection   string        `json:"collection"`
-	Project      string        `json:"project"`
-	Repo         string        `json:"repo"`
-	MasterBranch string        `json:"masterBranch"`
-	UserID       string        `json:"userId"`
-	ImageConfigs []imageConfig `json:"imageConfigs"`
-	ChangeGroups []changeGroup `json:"changeGroups"`
-	Endpoints    []string      `json:"endpoints"`
-}
 
-type prcontent struct {
-	ID          string `json:"id"`
-	EventType   string `json:"eventType"`
-	PublisherID string `json:"publisherId"`
-	Resource    struct {
-		Repository struct {
-			ID      string `json:"id"`
-			Name    string `json:"name"`
-			URL     string `json:"url"`
-			Project struct {
-				ID         string `json:"id"`
-				Name       string `json:"name"`
-				URL        string `json:"url"`
-				State      string `json:"state"`
-				Revision   int    `json:"revision"`
-				Visibility string `json:"visibility"`
-			} `json:"project"`
-			RemoteURL string `json:"remoteUrl"`
-			SSHURL    string `json:"sshUrl"`
-		} `json:"repository"`
-		PullRequestID int    `json:"pullRequestId"`
-		CodeReviewID  int    `json:"codeReviewId"`
-		Status        string `json:"status"`
-		CreatedBy     struct {
-			DisplayName string `json:"displayName"`
-			URL         string `json:"url"`
-			ID          string `json:"id"`
-			UniqueName  string `json:"uniqueName"`
-			ImageURL    string `json:"imageUrl"`
-			Descriptor  string `json:"descriptor"`
-		} `json:"createdBy"`
-		CreationDate          time.Time `json:"creationDate"`
-		Title                 string    `json:"title"`
-		Description           string    `json:"description"`
-		SourceRefName         string    `json:"sourceRefName"`
-		TargetRefName         string    `json:"targetRefName"`
-		MergeStatus           string    `json:"mergeStatus"`
-		MergeID               string    `json:"mergeId"`
-		LastMergeSourceCommit struct {
-			CommitID string `json:"commitId"`
-			URL      string `json:"url"`
-		} `json:"lastMergeSourceCommit"`
-		LastMergeTargetCommit struct {
-			CommitID string `json:"commitId"`
-			URL      string `json:"url"`
-		} `json:"lastMergeTargetCommit"`
-		LastMergeCommit struct {
-			CommitID string `json:"commitId"`
-			Author   struct {
-				Name  string    `json:"name"`
-				Email string    `json:"email"`
-				Date  time.Time `json:"date"`
-			} `json:"author"`
-			Committer struct {
-				Name  string    `json:"name"`
-				Email string    `json:"email"`
-				Date  time.Time `json:"date"`
-			} `json:"committer"`
-			Comment string `json:"comment"`
-			URL     string `json:"url"`
-		} `json:"lastMergeCommit"`
-		Reviewers []struct {
-			ReviewerURL string `json:"reviewerUrl"`
-			Vote        int    `json:"vote"`
-			DisplayName string `json:"displayName"`
-			URL         string `json:"url"`
-			ID          string `json:"id"`
-			UniqueName  string `json:"uniqueName"`
-			ImageURL    string `json:"imageUrl"`
-			IsContainer bool   `json:"isContainer,omitempty"`
-			VotedFor    []struct {
-				ReviewerURL string `json:"reviewerUrl"`
-				Vote        int    `json:"vote"`
-				DisplayName string `json:"displayName"`
-				URL         string `json:"url"`
-				ID          string `json:"id"`
-				UniqueName  string `json:"uniqueName"`
-				ImageURL    string `json:"imageUrl"`
-				IsContainer bool   `json:"isContainer"`
-			} `json:"votedFor,omitempty"`
-		} `json:"reviewers"`
-		URL   string `json:"url"`
-		Links struct {
-			Web struct {
-				Href string `json:"href"`
-			} `json:"web"`
-			Statuses struct {
-				Href string `json:"href"`
-			} `json:"statuses"`
-		} `json:"_links"`
-		SupportsIterations bool   `json:"supportsIterations"`
-		ArtifactID         string `json:"artifactId"`
-	} `json:"resource"`
-	ResourceVersion    string `json:"resourceVersion"`
-	ResourceContainers struct {
-		Collection struct {
-			ID      string `json:"id"`
-			BaseURL string `json:"baseUrl"`
-		} `json:"collection"`
-		Account struct {
-			ID      string `json:"id"`
-			BaseURL string `json:"baseUrl"`
-		} `json:"account"`
-		Project struct {
-			ID      string `json:"id"`
-			BaseURL string `json:"baseUrl"`
-		} `json:"project"`
-	} `json:"resourceContainers"`
-	CreatedDate time.Time `json:"createdDate"`
-}
+// type comment struct {
+// 	ID              int    `json:"id"`
+// 	ParentCommentID int    `json:"parentCommentId"`
+// 	Author          author `json:"author"`
+// 	Content         string `json:"content"`
+// 	CommentType     string `json:"commentType"`
+// 	IsDeleted       bool   `json:"isDeleted"`
+// }
 
-type imageList struct {
-	Version string   `json:"version"`
-	Common  []string `json:"common"`
-}
+// type filePosition struct {
+// 	Line   int `json:"line"`
+// 	Offset int `json:"offset"`
+// }
 
-type author struct {
-	ID string `json:"id"`
-}
+// type threadContext struct {
+// 	FilePath       string       `json:"filePath"`
+// 	LeftFileStart  filePosition `json:"leftFileStart"`
+// 	LeftFileEnd    filePosition `json:"leftFileEnd"`
+// 	RightFileStart filePosition `json:"rightFileStart"`
+// 	RightFileEnd   filePosition `json:"rightFileEnd"`
+// }
 
-type comment struct {
-	ID              int    `json:"id"`
-	ParentCommentID int    `json:"parentCommentId"`
-	Author          author `json:"author"`
-	Content         string `json:"content"`
-	CommentType     string `json:"commentType"`
-	IsDeleted       bool   `json:"isDeleted"`
-}
+// type commentThread struct {
+// 	ID            int           `json:"id"`
+// 	Comments      []comment     `json:"comments"`
+// 	Status        string        `json:"status"`
+// 	ThreadContext threadContext `json:"threadContext"`
+// 	IsDeleted     bool          `json:"isDeleted"`
+// }
 
-type filePosition struct {
-	Line   int `json:"line"`
-	Offset int `json:"offset"`
-}
+// type commentThreads struct {
+// 	Value []commentThread `json:"value"`
+// 	Count int             `json:"count"`
+// }
 
-type threadContext struct {
-	FilePath       string       `json:"filePath"`
-	LeftFileStart  filePosition `json:"leftFileStart"`
-	LeftFileEnd    filePosition `json:"leftFileEnd"`
-	RightFileStart filePosition `json:"rightFileStart"`
-	RightFileEnd   filePosition `json:"rightFileEnd"`
-}
+// type postComment struct {
+// 	ParentCommentID int    `json:"parentCommentId"`
+// 	Content         string `json:"content"`
+// 	CommentType     int    `json:"commentType"`
+// }
 
-type commentThread struct {
-	ID            int           `json:"id"`
-	Comments      []comment     `json:"comments"`
-	Status        string        `json:"status"`
-	ThreadContext threadContext `json:"threadContext"`
-	IsDeleted     bool          `json:"isDeleted"`
-}
+// type supportsMarkDown struct {
+// 	Type  string `json:"type"`
+// 	Value int    `json:"value"`
+// }
 
-type commentThreads struct {
-	Value []commentThread `json:"value"`
-	Count int             `json:"count"`
-}
+// type threadProperty struct {
+// 	MicrosoftTeamFoundationDiscussionSupportsMarkdown supportsMarkDown `json:"Microsoft.TeamFoundation.Discussion.SupportsMarkdown"`
+// }
 
-type postComment struct {
-	ParentCommentID int    `json:"parentCommentId"`
-	Content         string `json:"content"`
-	CommentType     int    `json:"commentType"`
-}
+// type postThread struct {
+// 	Comments      []postComment  `json:"comments"`
+// 	Properties    threadProperty `json:"properties"`
+// 	Status        int            `json:"status"`
+// 	ThreadContext threadContext  `json:"threadContext"`
+// }
 
-type supportsMarkDown struct {
-	Type  string `json:"type"`
-	Value int    `json:"value"`
-}
+// type patchThread struct {
+// 	Status int `json:"status"`
+// }
 
-type threadProperty struct {
-	MicrosoftTeamFoundationDiscussionSupportsMarkdown supportsMarkDown `json:"Microsoft.TeamFoundation.Discussion.SupportsMarkdown"`
-}
+// type putVote struct {
+// 	Vote int `json:"vote"`
+// }
 
-type postThread struct {
-	Comments      []postComment  `json:"comments"`
-	Properties    threadProperty `json:"properties"`
-	Status        int            `json:"status"`
-	ThreadContext threadContext  `json:"threadContext"`
-}
-
-type patchThread struct {
-	Status int `json:"status"`
-}
-
-type putVote struct {
-	Vote int `json:"vote"`
-}
-
-type diffs struct {
-	AllChangesIncluded bool `json:"allChangesIncluded"`
-	ChangeCounts       struct {
-		Edit int `json:"Edit"`
-	} `json:"changeCounts"`
-	Changes []struct {
-		Item struct {
-			ObjectID         string `json:"objectId"`
-			OriginalObjectID string `json:"originalObjectId"`
-			GitObjectType    string `json:"gitObjectType"`
-			CommitID         string `json:"commitId"`
-			Path             string `json:"path"`
-			IsFolder         bool   `json:"isFolder"`
-			URL              string `json:"url"`
-		} `json:"item"`
-		ChangeType string `json:"changeType"`
-	} `json:"changes"`
-	CommonCommit string `json:"commonCommit"`
-	BaseCommit   string `json:"baseCommit"`
-	TargetCommit string `json:"targetCommit"`
-	AheadCount   int    `json:"aheadCount"`
-	BehindCount  int    `json:"behindCount"`
-}
+// type diffs struct {
+// 	AllChangesIncluded bool `json:"allChangesIncluded"`
+// 	ChangeCounts       struct {
+// 		Edit int `json:"Edit"`
+// 	} `json:"changeCounts"`
+// 	Changes []struct {
+// 		Item struct {
+// 			ObjectID         string `json:"objectId"`
+// 			OriginalObjectID string `json:"originalObjectId"`
+// 			GitObjectType    string `json:"gitObjectType"`
+// 			CommitID         string `json:"commitId"`
+// 			Path             string `json:"path"`
+// 			IsFolder         bool   `json:"isFolder"`
+// 			URL              string `json:"url"`
+// 		} `json:"item"`
+// 		ChangeType string `json:"changeType"`
+// 	} `json:"changes"`
+// 	CommonCommit string `json:"commonCommit"`
+// 	BaseCommit   string `json:"baseCommit"`
+// 	TargetCommit string `json:"targetCommit"`
+// 	AheadCount   int    `json:"aheadCount"`
+// 	BehindCount  int    `json:"behindCount"`
+// }
 
 var secret = secrets{}
 var botCommentPrefix = "[BOT_Image]\n"
@@ -627,44 +490,19 @@ func votePullRequest(client *http.Client, pullRequestID int, vote int) {
 
 func main() {
 	// read secrets
-	secretPathString := os.Getenv("SECRET_PATH")
-	if len(secretPathString) == 0 {
-		fmt.Println("env SECRET_PATH not found.")
-		return
-	}
+	log.SetFlags(log.LstdFlags | log.Llongfile)
 
-	file, _ := os.Open(secretPathString)
-	defer file.Close()
-	decoder := json.NewDecoder(file)
-	err := decoder.Decode(&secret)
+	config, err := vsts.GetConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Printf("Secret from env var: %s\n", secret.Username)
 
-	// read PR content
-	encodedPRContentString := os.Getenv("PR_CONTENT")
-	if len(encodedPRContentString) == 0 {
-		fmt.Println("env PRCONTENT not found.")
-		return
-	}
-
-	prContentBytes, err := base64.StdEncoding.DecodeString(encodedPRContentString)
+	pr, err := vsts.ParsePullRequest()
 	if err != nil {
 		log.Fatal(err)
 	}
-	prContentString := string(prContentBytes)
-	prContentRaw := prContentString[strings.Index(prContentString, "{"):(strings.LastIndex(prContentString, "}") + 1)]
-	prContent := prcontent{}
-	if err := json.Unmarshal([]byte(prContentRaw), &prContent); err != nil {
-		log.Fatal(err)
-	}
 
-	if strings.EqualFold(prContent.ID, "") {
-		fmt.Printf("unexpected PR content: %v\n", prContentString)
-		return
-	}
-	fmt.Printf("Got PR update: %s\n", prContent.ID)
+	log.Printf("Got PR update: %s\n", pr.ID)
 
 	if !strings.EqualFold(prContent.Resource.TargetRefName, fmt.Sprintf("%s/%s", "refs/heads", secret.MasterBranch)) {
 		fmt.Printf("unexpected target branch: %s\n", prContent.Resource.TargetRefName)
