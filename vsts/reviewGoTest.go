@@ -12,7 +12,7 @@ type goTestReview struct {
 }
 
 func (r *goTestReview) getBotCommentPrefix() string {
-	return "[BOT_Image]\n"
+	return "[BOT_GoTest]\n"
 }
 
 func (r *goTestReview) review() (bool, error) {

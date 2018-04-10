@@ -28,7 +28,7 @@ func (r *changeGroupReview) getFailedSign() string {
 
 func (r *changeGroupReview) getCommentContent(group changeGroup) (string, string) {
 	sort.Strings(group)
-	essentialMessage := fmt.Sprintf("These files usually be updated together: **%+v**, please double check.", group)
+	essentialMessage := fmt.Sprintf("These files are usually updated together: **%+v**, please double check.", group)
 	return essentialMessage, fmt.Sprintf(
 		"%s%s %s\n%s",
 		r.getBotCommentPrefix(),
@@ -38,6 +38,8 @@ func (r *changeGroupReview) getCommentContent(group changeGroup) (string, string
 }
 
 func (r *changeGroupReview) review() (bool, error) {
+	log.Println("change group check started.")
+
 	changedItemMap := make(map[string]bool)
 	for _, change := range r.diffs.Changes {
 		changedItemMap[change.Item.Path] = true
@@ -60,11 +62,11 @@ func (r *changeGroupReview) review() (bool, error) {
 	}
 
 	if len(missingGroupMap) == 0 {
-		log.Printf("change group check pass.\n")
+		log.Printf("change group check passed.\n")
 		return true, nil
-	} else {
-		log.Printf("change group missing: %+v\n", missingGroupMap)
 	}
+
+	log.Printf("change group failed: %+v\n", missingGroupMap)
 
 	commentThreads, err := getCommentThreads(r.pullRequest.Resource.PullRequestID)
 	if err != nil {
@@ -95,6 +97,8 @@ func (r *changeGroupReview) review() (bool, error) {
 			}
 		}
 	}
+
+	log.Println("change group completed.")
 
 	return true, nil
 }
