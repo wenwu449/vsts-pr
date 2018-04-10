@@ -2,14 +2,32 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/wenwu449/vsts-pr/vsts"
 )
 
+const (
+	logPath = "LOG_PATH"
+)
+
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+
+	logFilePath := os.Getenv(logPath)
+	if len(logFilePath) > 0 {
+
+		logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		mw := io.MultiWriter(os.Stdout, logFile)
+		log.SetOutput(mw)
+	}
 
 	config, err := vsts.GetConfig()
 	if err != nil {

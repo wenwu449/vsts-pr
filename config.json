@@ -19,6 +19,9 @@
             "header": "{response header}"
         }
     ],
+    "ChangeGroups": [
+        []
+    ],
     "endpoints": [
         "{serice endpoint list}"
     ]

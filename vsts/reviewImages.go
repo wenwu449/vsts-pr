@@ -61,6 +61,8 @@ func (r *imageReview) getCommentContent(missingImages []string) (string, string)
 }
 
 func (r *imageReview) review() (bool, error) {
+	log.Println("image check started.")
+
 	var changedImageConfigs []imageConfig
 	for _, imageConfig := range config.ImageConfigs {
 		for _, change := range r.diffs.Changes {
@@ -132,9 +134,9 @@ func (r *imageReview) review() (bool, error) {
 	}
 
 	if len(missingImagesMap) == 0 {
-		log.Printf("image check pass.\n")
+		log.Printf("image check passed.\n")
 	} else {
-		log.Printf("image missing: %+v\n", missingImagesMap)
+		log.Printf("image check failed: %+v\n", missingImagesMap)
 	}
 
 	commentThreads, err := getCommentThreads(r.pullRequest.Resource.PullRequestID)
@@ -169,7 +171,7 @@ func (r *imageReview) review() (bool, error) {
 
 		if commentThread.Status == "" {
 			// create thread
-			createCommentThread(r.pullRequest.Resource.PullRequestID, imageConfig.ConfigPath, status, commentContent)
+			err := createCommentThread(r.pullRequest.Resource.PullRequestID, imageConfig.ConfigPath, status, commentContent)
 			if err != nil {
 				return false, err
 			}
@@ -186,6 +188,8 @@ func (r *imageReview) review() (bool, error) {
 			}
 		}
 	}
+
+	log.Println("image check completed.")
 
 	// review result
 	return len(missingImagesMap) == 0, nil

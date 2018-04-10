@@ -22,13 +22,19 @@ func Review(pr *PullRequest) error {
 		return err
 	}
 
-	r := imageReview{diffs, pr}
-	imagePass, err := r.review()
+	ir := imageReview{diffs, pr}
+	imagePass, err := ir.review()
 	if err != nil {
 		return err
 	}
 
-	err = vote(pr, imagePass)
+	cgr := changeGroupReview{diffs, pr}
+	changeGroupPass, err := cgr.review()
+	if err != nil {
+		return err
+	}
+
+	err = vote(pr, imagePass && changeGroupPass)
 	if err != nil {
 		return err
 	}
