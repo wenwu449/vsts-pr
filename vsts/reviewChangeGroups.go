@@ -54,7 +54,7 @@ func (r *changeGroupReview) review() (bool, error) {
 			}
 		}
 
-		if len(list) > 0 || len(list) < len(group) {
+		if len(list) > 0 && len(list) < len(group) {
 			for _, item := range list {
 				missingGroupMap[item] = group
 			}
@@ -95,6 +95,8 @@ func (r *changeGroupReview) review() (bool, error) {
 			if err != nil {
 				return false, err
 			}
+		} else {
+			log.Printf("Already commented on file %s\n", filePath)
 		}
 	}
 
