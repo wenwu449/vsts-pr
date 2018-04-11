@@ -132,6 +132,7 @@ func ParsePullRequest() (*PullRequest, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	prContentString := string(prContentBytes)
 	prContentRaw := prContentString[strings.Index(prContentString, "{"):(strings.LastIndex(prContentString, "}") + 1)]
 	prContent := PullRequest{}

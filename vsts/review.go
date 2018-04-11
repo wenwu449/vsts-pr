@@ -34,7 +34,13 @@ func Review(pr *PullRequest) error {
 		return err
 	}
 
-	err = vote(pr, imagePass && changeGroupPass)
+	ser := storageEntitiesReview{diffs, pr}
+	storageEntitiesPass, err := ser.review()
+	if err != nil {
+		return err
+	}
+
+	err = vote(pr, imagePass && changeGroupPass && storageEntitiesPass)
 	if err != nil {
 		return err
 	}
