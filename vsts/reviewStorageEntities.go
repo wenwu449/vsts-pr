@@ -13,12 +13,12 @@ type storageEntitiesReview struct {
 }
 
 func (r *storageEntitiesReview) getBotCommentPrefix() string {
-	return "[BOT_Image]\n"
+	return "[BOT_Entities]\n"
 }
 
 func (r *storageEntitiesReview) getCommentContent(changedStorageEntityPathes []string) string {
 	return fmt.Sprintf(
-		"%s:warning:\nThe following storage entities were changed that could potentially break back compatibility: **%+v**",
+		"%s:warning:\nThe following storage entities were changed:\n**%+v**\nMake sure you are not removing any properties that will break back compatibility.",
 		r.getBotCommentPrefix(),
 		changedStorageEntityPathes)
 }
@@ -53,7 +53,7 @@ func (r *storageEntitiesReview) review() (bool, error) {
 
 	commentThread := commentThread{}
 	for _, thread := range commentThreads.Value {
-		if !thread.IsDeleted && strings.EqualFold(thread.ThreadContext.FilePath, changedStorageEntityPathes[0]) {
+		if !thread.IsDeleted && thread.ThreadContext.FilePath == "" {
 			for _, comment := range thread.Comments {
 				if comment.ID == 1 && comment.Author.ID == config.UserID && strings.HasPrefix(comment.Content, r.getBotCommentPrefix()) {
 					commentThread = thread
@@ -65,7 +65,7 @@ func (r *storageEntitiesReview) review() (bool, error) {
 
 	if commentThread.Status == "" {
 		commentContent := r.getCommentContent(changedStorageEntityPathes)
-		err := createCommentThread(r.pullRequest.Resource.PullRequestID, changedStorageEntityPathes[0], 1, commentContent)
+		err := createCommentThread(r.pullRequest.Resource.PullRequestID, "", 1, commentContent)
 		if err != nil {
 			return false, err
 		}
