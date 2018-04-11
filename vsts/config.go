@@ -20,17 +20,18 @@ type changeGroup []string
 
 // Config is configuration for VSTS access
 type Config struct {
-	Username     string        `json:"username"`
-	Password     string        `json:"password"`
-	Instance     string        `json:"instance"`
-	Collection   string        `json:"collection"`
-	Project      string        `json:"project"`
-	Repo         string        `json:"repo"`
-	MasterBranch string        `json:"masterBranch"`
-	UserID       string        `json:"userId"`
-	ImageConfigs []imageConfig `json:"imageConfigs"`
-	ChangeGroups []changeGroup `json:"changeGroups"`
-	Endpoints    []string      `json:"endpoints"`
+	Username              string        `json:"username"`
+	Password              string        `json:"password"`
+	Instance              string        `json:"instance"`
+	Collection            string        `json:"collection"`
+	Project               string        `json:"project"`
+	Repo                  string        `json:"repo"`
+	MasterBranch          string        `json:"masterBranch"`
+	UserID                string        `json:"userId"`
+	ImageConfigs          []imageConfig `json:"imageConfigs"`
+	ChangeGroups          []changeGroup `json:"changeGroups"`
+	StorageEntitiesPrefix []string      `json:"storageEntitiesPrefix"`
+	Endpoints             []string      `json:"endpoints"`
 }
 
 // GetConfig loads configuration from file

@@ -22,7 +22,10 @@
     "ChangeGroups": [
         []
     ],
+    "storageEntitiesPrefix": [
+        "{storage entities prefix, e.g. /src/providers/roles/Providers.Data/Entities}"
+    ],
     "endpoints": [
-        "{serice endpoint list}"
+        "{service endpoint list}"
     ]
 }

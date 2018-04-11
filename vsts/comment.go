@@ -89,6 +89,10 @@ func createCommentThread(pullRequestID int, filePath string, status int, content
 		},
 	}
 
+	if filePath == "" {
+		thread.ThreadContext = threadContext{}
+	}
+
 	url := getThreadsURL(pullRequestID)
 
 	err := postToVsts(url, thread)
