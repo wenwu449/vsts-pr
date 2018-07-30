@@ -40,7 +40,7 @@ func (r *imageReview) getPassedWord() string {
 }
 
 func (r *imageReview) getCommentContent(missingImages []string) (string, string) {
-	essentialMessage := "All images listed on [acchealth](http://armhealth.azurewebsites.net/#acc) are included in this list."
+	essentialMessage := "All images listed on [acihealth](http://acihealth.azurewebsites.net/#cloudshell) are included in this list."
 	if len(missingImages) == 0 {
 		return essentialMessage, fmt.Sprintf(
 			"%s%s %s %s\n%s",
@@ -53,7 +53,7 @@ func (r *imageReview) getCommentContent(missingImages []string) (string, string)
 	sort.Strings(missingImages)
 	essentialMessage = fmt.Sprintf("Following images should be included:**%+v**", missingImages)
 	return essentialMessage, fmt.Sprintf(
-		"%s%s %s\nYou can get image list from [acchealth](http://armhealth.azurewebsites.net/#acc).\n%s",
+		"%s%s %s\nYou can get image list from [acihealth](http://acihealth.azurewebsites.net/#cloudshell).\n%s",
 		r.getBotCommentPrefix(),
 		r.getFailedSign(),
 		essentialMessage,
@@ -88,7 +88,7 @@ func (r *imageReview) review() (bool, error) {
 		go ext.GetHeaderFromHealthCheck(done, endpoint)
 	}
 
-	for _ = range config.Endpoints {
+	for range config.Endpoints {
 		header := <-done
 		if header != nil {
 			for _, imageConfig := range config.ImageConfigs {
@@ -110,13 +110,25 @@ func (r *imageReview) review() (bool, error) {
 		}
 
 		log.Printf("Checking: %s\n", imageConfig.ConfigPath)
-		log.Printf("images: %+v\n", imageList.Common)
+		log.Printf("images 'commonImages': %+v\n", imageList.CommonImages)
+		commonImages := []string{}
+		if imageList.CommonImages != nil {
+			for _, image := range imageList.CommonImages {
+				commonImages = append(commonImages, image.Name)
+			}
+		} else {
+			log.Printf("support legacy image config format: %+v\n", config.SupportLegacyImageFormat)
+			if config.SupportLegacyImageFormat {
+				log.Printf("images 'common': %+v\n", imageList.Common)
+				commonImages = imageList.Common
+			}
+		}
 
 		requiredImages := imageDistinct[imageConfig.Os]
 		for imageVersion := range requiredImages {
 			log.Printf("Checking required image: %s\n", imageVersion)
 			found := false
-			for _, image := range imageList.Common {
+			for _, image := range commonImages {
 				version := image[strings.LastIndex(image, ":")+1:]
 				if strings.EqualFold(version, imageVersion) {
 					found = true

@@ -50,6 +50,16 @@ func Review(pr *PullRequest) error {
 
 func vote(pr *PullRequest, pass bool) error {
 	if pass {
+		log.Printf("All check passed for PR: %v\n", pr.Resource.PullRequestID)
+
+		c, err := containsHumanComments(pr)
+		if err != nil {
+			return nil
+		}
+		if c {
+			log.Printf("PR contains human comments, skip voting.\n")
+			return nil
+		}
 		for _, reviewer := range pr.Resource.Reviewers {
 			if strings.EqualFold(reviewer.ID, config.UserID) {
 				if reviewer.Vote < 0 {
@@ -71,4 +81,27 @@ func vote(pr *PullRequest, pass bool) error {
 	}
 
 	return nil
+}
+
+func containsHumanComments(pr *PullRequest) (bool, error) {
+	commentThreads, err := getCommentThreads(pr.Resource.PullRequestID)
+	if err != nil {
+		return false, err
+	}
+
+	for _, thread := range commentThreads.Value {
+		if !thread.IsDeleted {
+			for _, comment := range thread.Comments {
+				if !comment.IsDeleted &&
+					!strings.EqualFold(comment.CommentType, "system") &&
+					strings.EqualFold(comment.Author.ID, config.UserID) &&
+					!strings.HasPrefix(comment.Content, "[BOT_") {
+					log.Printf("Found human comment: %+v\n", comment)
+					return true, nil
+				}
+			}
+		}
+	}
+
+	return false, nil
 }

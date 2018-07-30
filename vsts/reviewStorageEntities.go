@@ -16,11 +16,16 @@ func (r *storageEntitiesReview) getBotCommentPrefix() string {
 	return "[BOT_Entities]\n"
 }
 
+func (r *storageEntitiesReview) getBotCommentSuffix() string {
+	return "\n*This comment was added by bot, please let me know if you have any suggestion!*"
+}
+
 func (r *storageEntitiesReview) getCommentContent(changedStorageEntityPathes []string) string {
 	return fmt.Sprintf(
-		"%s:warning:\nThe following storage entities were changed:\n**%+v**\nMake sure you are not removing any properties that will break back compatibility.",
+		"%s:warning:\nThe following storage entities were changed:\n**%+v**\nMake sure you are not removing any properties that will break back compatibility.%s",
 		r.getBotCommentPrefix(),
-		changedStorageEntityPathes)
+		changedStorageEntityPathes,
+		r.getBotCommentSuffix())
 }
 
 func (r *storageEntitiesReview) review() (bool, error) {
