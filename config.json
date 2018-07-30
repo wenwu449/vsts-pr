@@ -7,6 +7,7 @@
     "repo": "{repository name or ID}",
     "masterBranch": "{master branch name}",
     "userId": "{vsts user ID}",
+    "supportLegacyImageFormat": "{boolean}",
     "imageConfigs": [
         {
             "os": "linux",
@@ -19,7 +20,7 @@
             "header": "{response header}"
         }
     ],
-    "ChangeGroups": [
+    "changeGroups": [
         []
     ],
     "storageEntitiesPrefix": [

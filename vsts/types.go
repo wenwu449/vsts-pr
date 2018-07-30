@@ -91,7 +91,13 @@ type diffs struct {
 	BehindCount  int    `json:"behindCount"`
 }
 
+type image struct {
+	RepoType string `json:"repoType"`
+	Name     string `json:"name"`
+}
+
 type imageList struct {
-	Version string   `json:"version"`
-	Common  []string `json:"common"`
+	Version      string   `json:"version"`
+	Common       []string `json:"common"`
+	CommonImages []image  `json:"commonImages"`
 }
