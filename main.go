@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -15,6 +16,8 @@ const (
 )
 
 func main() {
+	fmt.Println("a")
+
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 
 	logFilePath := os.Getenv(logPath)
@@ -28,26 +31,43 @@ func main() {
 		mw := io.MultiWriter(os.Stdout, logFile)
 		log.SetOutput(mw)
 	}
+	log.Println("log: %s", logFilePath)
 
-	config, err := vsts.GetConfig()
-	if err != nil {
-		log.Fatal(err)
-	}
+	cmd := flag.String("command", "", "The command")
+	flag.Parse()
+	fmt.Printf("cmd: %v", *cmd)
 
-	pr, err := vsts.ParsePullRequest()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	log.Printf("Got PR update: %v\n", pr.Resource.PullRequestID)
-
-	if !strings.EqualFold(pr.Resource.TargetRefName, fmt.Sprintf("%s/%s", "refs/heads", config.MasterBranch)) {
-		fmt.Printf("unexpected target branch: %s\n", pr.Resource.TargetRefName)
+	if !strings.EqualFold(*cmd, "pr") {
+		fmt.Println("cmd != 'pr', exit")
 		return
 	}
 
-	err = vsts.Review(pr)
+	config := &vsts.Config{}
+	var err error = nil
+	//config, err := vsts.GetConfig()
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	switch *cmd {
+	case "pr":
+		pr, err := vsts.ParsePullRequest()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		log.Printf("Got PR update: %v\n", pr.Resource.PullRequestID)
+
+		if !strings.EqualFold(pr.Resource.TargetRefName, fmt.Sprintf("%s/%s", "refs/heads", config.MasterBranch)) {
+			fmt.Printf("unexpected target branch: %s\n", pr.Resource.TargetRefName)
+			return
+		}
+
+		err = vsts.Review(pr)
+		if err != nil {
+			log.Fatal(err)
+		}
+	default:
+		fmt.Printf("unknown command: '%s'", *cmd)
 	}
 }

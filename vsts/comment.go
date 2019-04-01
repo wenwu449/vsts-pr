@@ -6,25 +6,37 @@ import (
 	"strings"
 )
 
-func getThreadsURL(pullRequestID int) string {
+type Commenter struct {
+	config *Config
+	client *Client
+}
+
+func NewCommenter(config *Config, client *Client) *Commenter {
+	return &Commenter{
+		config: config,
+		client: client,
+	}
+}
+
+func (c *Commenter) getThreadsURL(pullRequestID int) string {
 	threadsURLTemplate := "https://{instance}/DefaultCollection/{project}/_apis/git/repositories/{repository}/pullRequests/{pullRequest}/threads?api-version={version}"
 
 	r := strings.NewReplacer(
-		"{instance}", config.Instance,
-		"{project}", config.Project,
-		"{repository}", config.Repo,
+		"{instance}", c.config.Instance,
+		"{project}", c.config.Project,
+		"{repository}", c.config.Repo,
 		"{pullRequest}", strconv.Itoa(pullRequestID),
 		"{version}", "3.0-preview")
 
 	return r.Replace(threadsURLTemplate)
 }
 
-func getThreadURL(pullRequestID int, threadID int) string {
+func (c *Commenter) getThreadURL(pullRequestID int, threadID int) string {
 	threadURLTempate := "https://{instance}/DefaultCollection/{project}/_apis/git/repositories/{repository}/pullRequests/{pullRequest}/threads/{threadID}?api-version={version}"
 	r := strings.NewReplacer(
-		"{instance}", config.Instance,
-		"{project}", config.Project,
-		"{repository}", config.Repo,
+		"{instance}", c.config.Instance,
+		"{project}", c.config.Project,
+		"{repository}", c.config.Repo,
 		"{pullRequest}", strconv.Itoa(pullRequestID),
 		"{threadID}", strconv.Itoa(threadID),
 		"{version}", "3.0-preview")
@@ -32,12 +44,12 @@ func getThreadURL(pullRequestID int, threadID int) string {
 	return r.Replace(threadURLTempate)
 }
 
-func getCommentURL(pullRequestID int, threadID int) string {
+func (c *Commenter) getCommentURL(pullRequestID int, threadID int) string {
 	commentURLTempate := "https://{instance}/DefaultCollection/{project}/_apis/git/repositories/{repository}/pullRequests/{pullRequest}/threads/{threadID}/comments?api-version={version}"
 	r := strings.NewReplacer(
-		"{instance}", config.Instance,
-		"{project}", config.Project,
-		"{repository}", config.Repo,
+		"{instance}", c.config.Instance,
+		"{project}", c.config.Project,
+		"{repository}", c.config.Repo,
 		"{pullRequest}", strconv.Itoa(pullRequestID),
 		"{threadID}", strconv.Itoa(threadID),
 		"{version}", "3.0-preview")
@@ -45,11 +57,11 @@ func getCommentURL(pullRequestID int, threadID int) string {
 	return r.Replace(commentURLTempate)
 }
 
-func getCommentThreads(pullRequestID int) (*commentThreads, error) {
+func (c *Commenter) getCommentThreads(pullRequestID int) (*commentThreads, error) {
 	commentThreads := new(commentThreads)
 
-	url := getThreadsURL(pullRequestID)
-	err := getFromVsts(url, commentThreads)
+	url := c.getThreadsURL(pullRequestID)
+	err := c.client.getFromVsts(url, commentThreads)
 
 	if err != nil {
 		return nil, err
@@ -58,7 +70,7 @@ func getCommentThreads(pullRequestID int) (*commentThreads, error) {
 	return commentThreads, nil
 }
 
-func createCommentThread(pullRequestID int, filePath string, status int, content string) error {
+func (c *Commenter) createCommentThread(pullRequestID int, filePath string, status int, content string) error {
 	log.Printf("Creating comment thread to PR %v...\n", pullRequestID)
 
 	thread := postThread{
@@ -93,9 +105,9 @@ func createCommentThread(pullRequestID int, filePath string, status int, content
 		thread.ThreadContext = threadContext{}
 	}
 
-	url := getThreadsURL(pullRequestID)
+	url := c.getThreadsURL(pullRequestID)
 
-	err := postToVsts(url, thread)
+	err := c.client.postToVsts(url, thread)
 	if err != nil {
 		return err
 	}
@@ -103,7 +115,7 @@ func createCommentThread(pullRequestID int, filePath string, status int, content
 	return nil
 }
 
-func addComment(pullRequestID int, thread commentThread, essentialMessage string, content string) error {
+func (c *Commenter) addComment(pullRequestID int, thread commentThread, essentialMessage string, content string) error {
 	lastCommentID := 0
 	commentContent := ""
 	for _, comment := range thread.Comments {
@@ -126,9 +138,9 @@ func addComment(pullRequestID int, thread commentThread, essentialMessage string
 		CommentType:     1,
 	}
 
-	url := getCommentURL(pullRequestID, thread.ID)
+	url := c.getCommentURL(pullRequestID, thread.ID)
 
-	err := postToVsts(url, comment)
+	err := c.client.postToVsts(url, comment)
 	if err != nil {
 		return err
 	}
@@ -136,7 +148,7 @@ func addComment(pullRequestID int, thread commentThread, essentialMessage string
 	return nil
 }
 
-func setCommentThreadStatus(pullRequestID int, thread commentThread, status int) error {
+func (c *Commenter) setCommentThreadStatus(pullRequestID int, thread commentThread, status int) error {
 	statusString := "active"
 	if status == 2 {
 		statusString = "fixed"
@@ -152,9 +164,9 @@ func setCommentThreadStatus(pullRequestID int, thread commentThread, status int)
 		Status: status,
 	}
 
-	url := getThreadURL(pullRequestID, thread.ID)
+	url := c.getThreadURL(pullRequestID, thread.ID)
 
-	err := patchToVsts(url, patchThread)
+	err := c.client.patchToVsts(url, patchThread)
 	if err != nil {
 		return err
 	}

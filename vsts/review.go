@@ -5,18 +5,20 @@ import (
 	"strings"
 )
 
-var config *Config
+type Reviewer struct {
+	config *Config
+	client *Client
+}
 
-func init() {
-	var err error
-	config, err = GetConfig()
-	if err != nil {
-		log.Fatal(err)
+func NewReviewer(config *Config, client *Client) *Reviewer {
+	return &Reviewer{
+		config: config,
+		client: client,
 	}
 }
 
 // Review do multiple reviews
-func Review(pr *PullRequest) error {
+func (r *Reviewer) Review(pr *PullRequest) error {
 	diffs, err := getDiffsBetweenBranches(getBranchNameFromRefName(pr.Resource.TargetRefName), getBranchNameFromRefName(pr.Resource.SourceRefName))
 	if err != nil {
 		return err
